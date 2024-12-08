@@ -23,7 +23,7 @@ export default function RootLayout({
         <header className="fixed w-full bg-gray-900/80 backdrop-blur-md z-50">
           <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
             <Link href="/" className="text-xl font-bold text-white">
-              Ordinals NFT
+              Open NFT 
             </Link>
             <nav className="space-x-6">
               <Link href="/auctions" className="text-gray-300 hover:text-white">
@@ -33,7 +33,7 @@ export default function RootLayout({
                 Ended Auctions
               </Link>
               <Link href="/my-nfts" className="text-gray-300 hover:text-white">
-                My NFTs
+                My Auctions
               </Link>
               <Link href="/my-bids" className="text-gray-300 hover:text-white">
                 My Bids

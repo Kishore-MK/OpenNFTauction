@@ -1,117 +1,134 @@
 import {
-    assert,
-    ByteString,
-    hash256,
-    method,
-    prop,
-    PubKey,
-    Sig,
-    SmartContract,
-    Utils,
-    bsv,
-    slice,
-    pubKey2Addr,
-    toByteString,
-} from 'scrypt-ts'
+  assert,
+  ByteString,
+  hash256,
+  method,
+  prop,
+  PubKey,
+  Sig,
+  SmartContract,
+  Utils,
+  bsv,
+  pubKey2Addr,
+  toByteString,
+  FixedArray,
+} from 'scrypt-ts';
 
-import Transaction = bsv.Transaction
-import Script = bsv.Script
-
-// Enum for Auction status
 enum AuctionStatus {
-    CREATED,
-    LISTED,
-    BIDDING,
-    SOLD,
+  CREATED,
+  LISTED,
+  BIDDING,
+  SOLD,
 }
 
-// Auction type definition
 type Auction = {
-    readonly nftId: ByteString
-    owner: PubKey
-    auctionStatus: AuctionStatus
-    minimumBid: bigint
-    currentBid: bigint
-    currentHighestBidder: PubKey
-    readonly auctionDeadline: bigint
-}
+  readonly nftId: ByteString;
+  owner: PubKey;
+  auctionStatus: AuctionStatus;
+  minimumBid: bigint;
+  currentBid: bigint;
+  currentHighestBidder: PubKey;
+  readonly auctionDeadline: bigint;
+};
 
 export class OpenNFTAuction extends SmartContract {
-    // Dynamic array of auctions
-    @prop(true)
-    a: bigint
+  // Simulated dynamic array using a fixed-length array
+  @prop(true)
+  auctions: Auction;
 
-    constructor() {
-        super(...arguments)
+  // Tracks the number of active auctions in the array
+  @prop(true)
+  auctionCount: bigint;
 
-        // Initialize with an empty array
-        this.a = 10n
-    }
+  constructor() {
+      super(...arguments);
 
-    @method()
-    public createAuction(
-        nftId: ByteString,
-        owner: PubKey,
-        minimumBid: bigint,
-        auctionDeadline: bigint
-    ) {
-        // Create new auction
-        const newAuction: Auction = {
-            nftId: nftId,
-            owner: owner,
-            auctionStatus: AuctionStatus.CREATED,
-            minimumBid: minimumBid,
-            currentBid: 0n,
-            currentHighestBidder: owner,
-            auctionDeadline: auctionDeadline,
-        }
+      // Initialize auctions array with default values
+      const placeholderPubKey = PubKey(
+          toByteString('020000000000000000000000000000000000000000000000000000000000000000')
+      );
 
-        // Add auction to array
-        // this.a.push(newAuction);
+      this.auctions = {
+          nftId: toByteString(''),
+          owner: placeholderPubKey,
+          auctionStatus: AuctionStatus.CREATED,
+          minimumBid: 0n,
+          currentBid: 0n,
+          currentHighestBidder: placeholderPubKey,
+          auctionDeadline: 0n,
+      };
 
-        // Verify outputs
-        let outputs = this.buildStateOutput(1n)
-        outputs += this.buildChangeOutput()
+      
+      this.auctionCount=0n;
+  }
 
-        assert(
-            hash256(outputs) == this.ctx.hashOutputs,
-            'hashOutputs check failed'
-        )
+  @method()
+  public createAuction(
+      nftId: ByteString,
+      owner: PubKey,
+      minimumBid: bigint,
+      auctionDeadline: bigint
+  ) {
+      // Ensure we don't exceed the array's capacity
+      assert(this.auctionCount < 1000n, 'Maximum auction limit reached');
 
-        // Return the index of the newly created auction
-        // Note: This is a conceptual return, as Scrypt doesn't support direct returns
-    }
+      // Create the new auction
+      const newAuction: Auction = {
+          nftId: nftId,
+          owner: owner,
+          auctionStatus: AuctionStatus.CREATED,
+          minimumBid: minimumBid,
+          currentBid: 0n,
+          currentHighestBidder: owner,
+          auctionDeadline: auctionDeadline,
+      };
+
+      // Add the auction at the next available index
+      this.auctions= newAuction;
+
+      // Increment the auction count
+      this.auctionCount += 1n;
+
+      // Verify outputs
+      let outputs = this.buildStateOutput(1n);
+      outputs += this.buildChangeOutput();
+
+      assert(
+          hash256(outputs) == this.ctx.hashOutputs,
+          'hashOutputs check failed'
+      );
+  }
+
+  @method()
+  public list(auctionIndex: bigint, lister: PubKey) {
+      // Ensure the index is valid
+      assert(
+          auctionIndex < this.auctionCount,
+          'Invalid auction index'
+      );
+
+      const auction = this.auctions;
+
+      // Only the owner can list
+      assert(
+          lister == auction.owner,
+          'Only owner can list the NFT'
+      );
+
+      auction.auctionStatus = AuctionStatus.LISTED;
+
+      this.auctions = auction;
+
+      let outputs = this.buildStateOutput(1n);
+      outputs += this.buildChangeOutput();
+
+      assert(
+          hash256(outputs) == this.ctx.hashOutputs,
+          'hashOutputs check failed'
+      );
+  }
 }
-//   // Method to list an existing auction
-//   @method()
-//   public list(auctionIndex: bigint, lister: PubKey) {
-//     // Validate auction index
-//     assert(
-//       auctionIndex < this.a.length,
-//       "Invalid auction index"
-//     );
 
-//     // Get the specific auction
-//     let auction = this.a[Number(auctionIndex)];
-
-//     // Ensure only owner can list
-//     assert(lister == auction.owner, "Only owner can list the NFT");
-
-//     // Update auction status
-//     auction.auctionStatus = AuctionStatus.LISTED;
-
-//     // Update auction in array
-//     this.a[Number(auctionIndex)] = auction;
-
-//     // Verify outputs
-//     let outputs = this.buildStateOutput(1n);
-//     outputs += this.buildChangeOutput();
-
-//     assert(
-//       hash256(outputs) == this.ctx.hashOutputs,
-//       "hashOutputs check failed"
-//     );
-//   }
 
 //   // Method for placing a bid
 //   @method()

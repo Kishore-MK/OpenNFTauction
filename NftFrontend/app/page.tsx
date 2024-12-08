@@ -38,7 +38,7 @@ export default function Home() {
             transition={{ delay: 0.3 }}
             className="text-7xl font-bold mb-6 text-white"
           >
-            Ordinals NFT Auctions
+            Open NFT Auctions
           </motion.h1>
 
           <motion.p

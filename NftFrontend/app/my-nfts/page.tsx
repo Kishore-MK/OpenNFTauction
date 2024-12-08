@@ -35,7 +35,7 @@ export default function MyNFTsPage() {
             animate={{ opacity: 1, y: 0 }}
             className="text-4xl font-bold"
           >
-            My NFTs
+            My Auctions
           </motion.h1>
           
           <motion.div
